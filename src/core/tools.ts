@@ -2,10 +2,11 @@
 
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { Type } from "@sinclair/typebox";
 import { ARCHIVE_DIR, persistOriginal } from "./archive.ts";
 import type { CompressionBlock, MoltState } from "./state.ts";
 import { collectRangeMessages, estimateRangeSourceTokens, estimateTokens } from "./splicer.ts";
-import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
+import type { HostAdapter, MoltToolDef } from "../types.ts";
 
 /** Replace (bN) placeholders in a summary with the referenced block's stored content. */
 function expandBlockPlaceholders(summary: string, state: MoltState): string {
@@ -99,89 +100,82 @@ export function createBlocks(
 	return { blockIds, expandedSummaries };
 }
 
-export function registerTools(pi: ExtensionAPI, state: MoltState): void {
-	// registerTool<TParams extends TSchema> instantiates the typebox shim's
-	// arktype-derived schema types infinitely deep; the runtime is duck-typed.
-	const register = pi.registerTool.bind(pi) as (tool: unknown) => void;
-
-	register({
+export function createTools(host: HostAdapter, state: MoltState): MoltToolDef[] {
+	const moltTool: MoltToolDef = {
 		name: "molt",
 		label: "Molt Context",
 		description:
 			"Compress ranges of conversation into dense technical summaries to manage context. " +
 			"Use only <molt-id> boundary IDs visible in context (mNNN for messages, bN for previously molted blocks). " +
 			"startId must appear before endId. Batch independent ranges in one call.",
-		parameters: pi.typebox.Type.Object({
-			topic: pi.typebox.Type.String({ description: "Short label (3-5 words), e.g. 'Auth Exploration'" }),
-			ranges: pi.typebox.Type.Array(
-				pi.typebox.Type.Object({
-					startId: pi.typebox.Type.String({ description: "Message ID marking range start (m001, b2)" }),
-					endId: pi.typebox.Type.String({ description: "Message ID marking range end (m042, b5)" }),
-					summary: pi.typebox.Type.String({
+		parameters: Type.Object({
+			topic: Type.String({ description: "Short label (3-5 words), e.g. 'Auth Exploration'" }),
+			ranges: Type.Array(
+				Type.Object({
+					startId: Type.String({ description: "Message ID marking range start (m001, b2)" }),
+					endId: Type.String({ description: "Message ID marking range end (m042, b5)" }),
+					summary: Type.String({
 						description: "Exhaustive technical summary replacing all content in range",
 					}),
 				}),
 				{ description: "One or more ranges to molt" },
 			),
 		}),
-		async execute(
-			_toolCallId,
-			params: { topic: string; ranges: Array<{ startId: string; endId: string; summary: string }> },
-			_signal,
-			_onUpdate,
-			ctx,
-		) {
+		async execute(_toolCallId, params) {
+			const { topic, ranges: requested } = params as {
+				topic: string;
+				ranges: Array<{ startId: string; endId: string; summary: string }>;
+			};
 			// Archive originals + embed the recall marker, same contract as runAutoMolt.
-			const messages =
-				ctx?.sessionManager
-					?.getBranch?.()
-					.filter((e: any) => e.messages)
-					.flatMap((e: any) => e.messages) ?? [];
-			const originals = collectRangeMessages(messages as any[], state, params.ranges);
+			const messages = host.sessionMessages();
+			const originals = collectRangeMessages(messages, state, requested);
 			const hash = originals.length > 0 ? await persistOriginal(originals) : null;
 			const ranges = hash
-				? params.ranges.map((r) => ({ ...r, summary: `${r.summary}\n\nExpand originals: molt_expand hash=${hash}` }))
-				: params.ranges;
-			const sourceTokens = estimateRangeSourceTokens(messages as any[], state, params.ranges);
-			const { blockIds, expandedSummaries } = createBlocks(params.topic, ranges, state, sourceTokens);
+				? requested.map((r) => ({ ...r, summary: `${r.summary}\n\nExpand originals: molt_expand hash=${hash}` }))
+				: requested;
+			const sourceTokens = estimateRangeSourceTokens(messages, state, requested);
+			const { blockIds, expandedSummaries } = createBlocks(topic, ranges, state, sourceTokens);
 			const sourceTotal = sourceTokens.reduce((a, b) => a + b, 0);
 			const summaryTotal = expandedSummaries.reduce((a, s) => a + estimateTokens(s), 0);
-			pi.appendEntry("molt-metric", {
+			host.appendMetric({
 				kind: "block",
 				ts: Date.now(),
 				blockIds,
-				topic: params.topic,
+				topic,
 				sourceTokens: sourceTotal,
 				summaryTokens: summaryTotal,
 				savedTokens: Math.max(0, sourceTotal - summaryTotal),
 			});
-			ctx.ui.notify(`Molted: ${params.topic} (${params.ranges.length} range(s))`, "info");
+			host.notify?.(`Molted: ${topic} (${requested.length} range(s))`, "info");
 			return {
-				content: [{ type: "text", text: `Molted ${params.ranges.length} range(s): ${params.topic}` }],
-				details: { blockIds, topic: params.topic, archiveHash: hash },
+				content: [{ type: "text", text: `Molted ${requested.length} range(s): ${topic}` }],
+				details: { blockIds, topic, archiveHash: hash },
 			};
 		},
-	});
+	};
 
-	register({
+	const expandTool: MoltToolDef = {
 		name: "molt_expand",
 		label: "Expand Molted Originals",
 		description:
 			"Retrieve the full original messages of a molted section by hash. " +
 			'Use the hash from "Expand originals: molt_expand hash=<hash>" markers in molted summaries.',
-		parameters: pi.typebox.Type.Object({
-			hash: pi.typebox.Type.String({ description: "24-char archive hash" }),
+		parameters: Type.Object({
+			hash: Type.String({ description: "24-char archive hash" }),
 		}),
-		async execute(_toolCallId, params: { hash: string }) {
+		async execute(_toolCallId, params) {
+			const { hash } = params as { hash: string };
 			try {
-				const original = await readFile(join(ARCHIVE_DIR, `${params.hash}.json`), "utf8");
+				const original = await readFile(join(ARCHIVE_DIR, `${hash}.json`), "utf8");
 				return { content: [{ type: "text", text: original }] };
 			} catch {
 				return {
-					content: [{ type: "text", text: `molt_expand: no archived original for hash ${params.hash}` }],
+					content: [{ type: "text", text: `molt_expand: no archived original for hash ${hash}` }],
 					isError: true,
 				};
 			}
 		},
-	});
+	};
+
+	return [moltTool, expandTool];
 }

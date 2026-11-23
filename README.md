@@ -82,13 +82,13 @@ Disable your structural compressor after parity (e.g. `omp plugin disable omp-he
 
 ## Harness compatibility
 
-**omp only.** molt is an omp extension, not a generic agent plugin:
+**omp is the only shipped adapter**, but the engine is host-agnostic: `src/types.ts` defines the boundary (`HostAdapter` + `Summarizer`), and everything under `src/core/` talks to the host exclusively through it.
 
 - It compiles against `@oh-my-pi/pi-coding-agent`'s `ExtensionAPI` (`pi.on`, `pi.registerTool`, `pi.appendEntry`, `ctx.models`, `ctx.getContextUsage`) and calls models through `@oh-my-pi/pi-ai`.
 - It ships via the omp plugin manifest (`"omp": { "extensions": [...] }`) and installs with `omp plugin install`.
 - Its persistence rides omp's session entry stream; its scheduling budget assumes omp's hook handler semantics (30 s, 2 s on shutdown).
 
-Porting to another harness means rewriting `index.ts` (the hook wiring) and the summarizer's model call against that harness's extension API; `splicer.ts`, `scheduler.ts`, `state.ts`, `telemetry.ts`, and `archive.ts` are harness-agnostic logic and carry over as-is. No such port exists.
+Porting to another harness means writing `src/adapters/<host>.ts` (~100–200 lines of glue): implement `HostAdapter` (the four touchpoints plus session messages/metrics), implement `Summarizer` against that host's model API, and call core's `molt(adapter, summarizer)` the way `src/index.ts` does. Hosts without a context hook omit `onContextEvent` and the engine degrades to eager-tool-only mode. Message identity is the non-trivial part: block ranges reference stable per-message IDs, so a host without native IDs must stamp fingerprint IDs on messages in its adapter. The engine (scheduler, splicer, state, telemetry, archive) carries over untouched. No second adapter exists yet.
 
 ## Development
 
@@ -98,7 +98,7 @@ bun run typecheck   # tsc --noEmit
 bun test            # vitest run
 ```
 
-Architecture: `src/index.ts` (hook wiring) · `src/scheduler.ts` (cache-cost policy) · `src/summarizer.ts` (LLM blocks) · `src/splicer.ts` (context transform) · `src/state.ts` (shapes + persistence) · `src/telemetry.ts` (spend) · `src/archive.ts` (originals) · `src/tools.ts` (`molt`, `molt_expand`) · `server/molt.ts` (paseo RPC stats handler).
+Architecture: `src/index.ts` (omp entry) · `src/types.ts` (`HostAdapter`/`Summarizer` boundary) · `src/adapters/omp.ts` (pi hook wiring + model call) · `src/core/` — `engine.ts` (host-agnostic wiring) · `scheduler.ts` (cache-cost policy) · `summarizer.ts` (LLM blocks) · `splicer.ts` (context transform) · `state.ts` (shapes + persistence) · `telemetry.ts` (spend) · `archive.ts` (originals) · `tools.ts` (`molt`, `molt_expand`) · `server/molt.ts` (paseo RPC stats handler).
 
 ## License
 

@@ -5,11 +5,11 @@ import {
 	serializeMoltState,
 	createInputFingerprint,
 	type MoltState,
-} from "../src/state.ts";
-import { createBlocks } from "../src/tools.ts";
-import { recordUsage, cacheEconomics, projectBustCostUsd } from "../src/telemetry.ts";
-import { shouldAutoMolt, DEFAULT_CONFIG, type MoltConfig } from "../src/scheduler.ts";
-import { applyPruning, estimateRangeSourceTokens, repairOrphanedToolPairs } from "../src/splicer.ts";
+} from "../src/core/state.ts";
+import { createBlocks } from "../src/core/tools.ts";
+import { recordUsage, cacheEconomics, projectBustCostUsd } from "../src/core/telemetry.ts";
+import { shouldAutoMolt, DEFAULT_CONFIG, type MoltConfig } from "../src/core/scheduler.ts";
+import { applyPruning, estimateRangeSourceTokens, repairOrphanedToolPairs } from "../src/core/splicer.ts";
 
 let ts = 1000;
 function userMsg(text: string): Record<string, any> {
@@ -287,8 +287,8 @@ describe("createBlocks overlap", () => {
 	it("names the conflicting block's span in the overlap error", () => {
 		const state = createState();
 		state.messageIdSnapshot.set("m001", 1000);
-		state.messageIdSnapshot.set("m003", 1002);
 		state.messageIdSnapshot.set("m005", 1004);
+		state.messageIdSnapshot.set("m003", 1002);
 		state.messageIdSnapshot.set("m009", 1008);
 		state.compressionBlocks.push({
 			id: 20,
