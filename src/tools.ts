@@ -15,11 +15,7 @@ function expandBlockPlaceholders(summary: string, state: MoltState): string {
 	});
 }
 
-function resolveIdToTimestamp(
-	rawId: string,
-	field: "startTimestamp" | "endTimestamp",
-	state: MoltState,
-): number {
+function resolveIdToTimestamp(rawId: string, field: "startTimestamp" | "endTimestamp", state: MoltState): number {
 	const id = rawId.trim();
 	const blockMatch = id.match(/^b(\d+)$/i);
 	if (blockMatch) {
@@ -128,10 +124,17 @@ export function registerTools(pi: ExtensionAPI, state: MoltState): void {
 				{ description: "One or more ranges to molt" },
 			),
 		}),
-		async execute(_toolCallId, params: { topic: string; ranges: Array<{ startId: string; endId: string; summary: string }> }, _signal, _onUpdate, ctx) {
+		async execute(
+			_toolCallId,
+			params: { topic: string; ranges: Array<{ startId: string; endId: string; summary: string }> },
+			_signal,
+			_onUpdate,
+			ctx,
+		) {
 			// Archive originals + embed the recall marker, same contract as runAutoMolt.
 			const messages =
-				ctx?.sessionManager?.getBranch?.()
+				ctx?.sessionManager
+					?.getBranch?.()
 					.filter((e: any) => e.messages)
 					.flatMap((e: any) => e.messages) ?? [];
 			const originals = collectRangeMessages(messages as any[], state, params.ranges);

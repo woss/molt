@@ -130,8 +130,7 @@ export function shouldAutoMolt(
 		candidateTokens * economics.readRate * SAVINGS_HORIZON_REQUESTS - bustCost - summarizerCostEstimate;
 
 	const fire =
-		projectSavingsUsd > 0 ||
-		(economics.readRate === 0 && economics.writeRate === 0 && candidateTokens > 20_000);
+		projectSavingsUsd > 0 || (economics.readRate === 0 && economics.writeRate === 0 && candidateTokens > 20_000);
 
 	return { fire, candidateRanges: fire ? ranges : [], economics, candidateTokens, projectSavingsUsd };
 }

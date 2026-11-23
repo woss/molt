@@ -5,6 +5,7 @@
 Build a new omp extension, **molt** (`~/projects/woss/molt`, npm package name `omp-molt`), that does what Sleev does locally: permanently shrinks session context by LLM-summarizing stale conversation ranges, scheduling rewrites only when projected savings beat the one-time prompt-cache bust. This replaces the structural-compression role of the `omp-headroom` fork (which trims requests but never shrinks history). User decisions: name `molt`; headroom is **disabled after parity** (not uninstalled); summarizer model is **configurable, default omp `@smol` role**.
 
 Verified ground truth this plan relies on:
+
 - omp extension API (docs/extensions.md on can1357/oh-my-pi): `pi.on(...)`, `pi.registerTool`, `pi.registerCommand`, `pi.appendEntry(customType, data)` + `ctx.sessionManager.getBranch()` for persistence, `ctx.getContextUsage()`, `ctx.models.resolve(spec)` / `ctx.models.current()`, `before_agent_start` returns `{systemPrompt}`, `context` event receives `{messages}` and returns `{messages}`, `tool_call`/`tool_result` events, 30s handler budget (2s on `session_shutdown`).
 - Model invocation from an extension: `import { complete } from "@oh-my-pi/pi-ai"` with a model from `ctx.models.resolve(selector)` — proven pattern from alesha-pro/omp-statecompact `src/index.ts:4,115,231`.
 - Splice machinery to port: complexthings/pi-dynamic-context-pruning (`pruner.ts`, `state.ts`, `compress-tool.ts`) — full shapes and pipeline captured in DcpScan findings below.

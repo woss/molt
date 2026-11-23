@@ -2,7 +2,7 @@
 
 Local semantic context optimizer for [omp](https://github.com/can1357/oh-my-pi): permanently shrinks session context by LLM-summarizing stale conversation ranges — but only when the projected token savings beat the one-time prompt-cache bust a rewrite costs.
 
-Structural compressors (truncation, headroom-style request trimming) shrink *requests* but never shrink *history*: the full transcript keeps flowing through every call. molt replaces stale ranges in history with dense technical summaries, so every later request is actually smaller. Originals are archived on disk and recoverable verbatim at any time.
+Structural compressors (truncation, headroom-style request trimming) shrink _requests_ but never shrink _history_: the full transcript keeps flowing through every call. molt replaces stale ranges in history with dense technical summaries, so every later request is actually smaller. Originals are archived on disk and recoverable verbatim at any time.
 
 ## How it works
 
@@ -64,13 +64,13 @@ Disable your structural compressor after parity (e.g. `omp plugin disable omp-he
 
 `.omp/molt.json` in the working directory; missing keys fall back to defaults:
 
-| Key | Default | Meaning |
-|---|---|---|
-| `auto` | `true` | scheduler-driven molting; `false` = model-invoked only |
-| `maxContextPercent` | `0.7` | usage ratio above which the gate may fire |
-| `protectTurns` | `2` | tool outputs younger than this are never candidates |
-| `maxRangeTokens` | `20000` | max estimated tokens per summarized range |
-| `model` | `"@smol"` | summarizer model spec, resolved via `ctx.models.resolve` |
+| Key                 | Default   | Meaning                                                  |
+| ------------------- | --------- | -------------------------------------------------------- |
+| `auto`              | `true`    | scheduler-driven molting; `false` = model-invoked only   |
+| `maxContextPercent` | `0.7`     | usage ratio above which the gate may fire                |
+| `protectTurns`      | `2`       | tool outputs younger than this are never candidates      |
+| `maxRangeTokens`    | `20000`   | max estimated tokens per summarized range                |
+| `model`             | `"@smol"` | summarizer model spec, resolved via `ctx.models.resolve` |
 
 ## Tools & commands
 
