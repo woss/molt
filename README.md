@@ -86,13 +86,13 @@ Disable your structural compressor after parity (e.g. `omp plugin disable omp-he
 
 ## Harness compatibility
 
-**omp is the only shipped adapter**, but the engine is host-agnostic: `src/types.ts` defines the boundary (`HostAdapter` + `Summarizer`), and everything under `src/core/` talks to the host exclusively through it.
+molt is **harness-agnostic by design**: `src/types.ts` defines the boundary (`HostAdapter` + `Summarizer`), and everything under `src/core/` — scheduler, splicer, state, telemetry, archive, engine, tools — talks to the host exclusively through it. Adapters are thin glue (~100–200 lines) that wire a harness's hooks and model API into the boundary.
 
-- It compiles against `@oh-my-pi/pi-coding-agent`'s `ExtensionAPI` (`pi.on`, `pi.registerTool`, `pi.appendEntry`, `ctx.models`, `ctx.getContextUsage`) and calls models through `@oh-my-pi/pi-ai`.
-- It ships via the omp plugin manifest (`"omp": { "extensions": [...] }`) and installs with `omp plugin install`.
-- Its persistence rides omp's session entry stream; its scheduling budget assumes omp's hook handler semantics (30 s, 2 s on shutdown).
+**Shipped adapters:**
 
-Porting to another harness means writing `src/adapters/<host>.ts` (~100–200 lines of glue): implement `HostAdapter` (the four touchpoints plus session messages/metrics), implement `Summarizer` against that host's model API, and call core's `molt(adapter, summarizer)` the way `src/index.ts` does. Hosts without a context hook omit `onContextEvent` and the engine degrades to eager-tool-only mode. Message identity is the non-trivial part: block ranges reference stable per-message IDs, so a host without native IDs must stamp fingerprint IDs on messages in its adapter. The engine (scheduler, splicer, state, telemetry, archive) carries over untouched. No second adapter exists yet.
+- **omp** (`src/adapters/omp.ts`, wired by `src/index.ts`) — compiles against `@oh-my-pi/pi-coding-agent`'s `ExtensionAPI` (`pi.on`, `pi.registerTool`, `pi.appendEntry`, `ctx.models`, `ctx.getContextUsage`), calls models through `@oh-my-pi/pi-ai`, ships via the omp plugin manifest (`"omp": { "extensions": [...] }`, installs with `omp plugin install`), persists state in omp's session entry stream, and assumes omp's hook handler budget (30 s, 2 s on shutdown).
+
+**Adding an adapter** (`src/adapters/<host>.ts`): implement `HostAdapter` (the four touchpoints plus session messages/metrics), implement `Summarizer` against that host's model API, and call core's `molt(adapter, summarizer)`. Hosts without a context hook omit `onContextEvent` and the engine degrades to eager-tool-only mode. Message identity is the non-trivial part: block ranges reference stable per-message IDs, so a host without native IDs must stamp fingerprint IDs on messages in its adapter. The engine carries over untouched.
 
 ## Development
 
