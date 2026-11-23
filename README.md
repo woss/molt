@@ -1,4 +1,8 @@
-# molt
+<p align="center">
+  <img src="assets/logo.svg" alt="molt — shed stale context, keep the session" width="520">
+</p>
+
+# molt — shed stale context, keep the session
 
 Local semantic context optimizer for [omp](https://github.com/can1357/oh-my-pi): permanently shrinks session context by LLM-summarizing stale conversation ranges — but only when the projected token savings beat the one-time prompt-cache bust a rewrite costs.
 
