@@ -45,7 +45,15 @@ export interface ContextEventResult {
 
 export type MoltMetricEntry =
 	| { kind: "pass"; ts: number; tokensBefore: number; tokensAfter: number; savedTokens: number; activeBlocks: number }
-	| { kind: "block"; ts: number; blockIds?: number[]; topic: string; sourceTokens: number; summaryTokens: number; savedTokens: number };
+	| {
+			kind: "block";
+			ts: number;
+			blockIds?: number[];
+			topic: string;
+			sourceTokens: number;
+			summaryTokens: number;
+			savedTokens: number;
+	  };
 
 /**
  * The touchpoints molt needs from a host. Message identity: block ranges

@@ -6,8 +6,25 @@ import { complete } from "@oh-my-pi/pi-ai";
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import { MOLT_SYSTEM_PROMPT, SUMMARIZER_SYSTEM_PROMPT } from "../core/prompt.ts";
 import { cacheEconomics } from "../core/telemetry.ts";
-import { createInputFingerprint, createState, deserializeMoltState, serializeMoltState, type MoltState, type ToolRecord } from "../core/state.ts";
-import type { ContextEvent, ContextEventResult, HostAdapter, MoltMessage, MoltToolDef, MoltMetricEntry, Summarizer, TelemetrySpend, ToolExecResult } from "../types.ts";
+import {
+	createInputFingerprint,
+	createState,
+	deserializeMoltState,
+	serializeMoltState,
+	type MoltState,
+	type ToolRecord,
+} from "../core/state.ts";
+import type {
+	ContextEvent,
+	ContextEventResult,
+	HostAdapter,
+	MoltMessage,
+	MoltToolDef,
+	MoltMetricEntry,
+	Summarizer,
+	TelemetrySpend,
+	ToolExecResult,
+} from "../types.ts";
 
 type AnyMsg = Record<string, any>; // pi message shapes — existing house convention for this boundary
 
@@ -142,7 +159,12 @@ export function createOmp(pi: ExtensionAPI): { adapter: HostAdapter; summarizer:
 		},
 		sessionMessages(): MoltMessage[] {
 			// pi session entries with `.messages` flattened to the branch's message list.
-			return latestCtx?.sessionManager?.getBranch?.().filter((e: AnyMsg) => e.messages).flatMap((e: AnyMsg) => e.messages) ?? [];
+			return (
+				latestCtx?.sessionManager
+					?.getBranch?.()
+					.filter((e: AnyMsg) => e.messages)
+					.flatMap((e: AnyMsg) => e.messages) ?? []
+			);
 		},
 		appendMetric(entry: MoltMetricEntry) {
 			pi.appendEntry("molt-metric", entry);
@@ -160,7 +182,8 @@ export function createOmp(pi: ExtensionAPI): { adapter: HostAdapter; summarizer:
 			const ctx = latestCtx;
 			if (!ctx) throw new Error("molt: no session context for summarizer");
 			// Resolution fallback chain: configured id → current session model.
-			const model = (await ctx.models.resolve(modelId)) ?? (await ctx.models.resolve("current")) ?? ctx.models.current();
+			const model =
+				(await ctx.models.resolve(modelId)) ?? (await ctx.models.resolve("current")) ?? ctx.models.current();
 			if (!model) throw new Error(`molt: model ${modelId} not resolvable`);
 			const apiKey = ctx.models.getApiKey?.(model) ?? undefined;
 			const response = await complete(

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { createState, deserializeMoltState, serializeMoltState, createInputFingerprint, type MoltState } from "../src/core/state.ts";
+import {
+	createState,
+	deserializeMoltState,
+	serializeMoltState,
+	createInputFingerprint,
+	type MoltState,
+} from "../src/core/state.ts";
 import { createBlocks } from "../src/core/tools.ts";
 import { recordUsage, cacheEconomics, projectBustCostUsd } from "../src/core/telemetry.ts";
 import { shouldAutoMolt, DEFAULT_CONFIG, type MoltConfig } from "../src/core/scheduler.ts";
@@ -12,15 +18,32 @@ function userMsg(text: string): Record<string, any> {
 function assistantWithToolCall(id: string, text = "calling"): Record<string, any> {
 	return {
 		role: "assistant",
-		content: [{ type: "text", text }, { type: "toolCall", id, name: "read" }],
+		content: [
+			{ type: "text", text },
+			{ type: "toolCall", id, name: "read" },
+		],
 		timestamp: ts++,
 	};
 }
 function toolResult(toolCallId: string, text: string, isError = false): Record<string, any> {
-	return { role: "toolResult", toolCallId, toolName: "read", content: [{ type: "text", text }], isError, timestamp: ts++ };
+	return {
+		role: "toolResult",
+		toolCallId,
+		toolName: "read",
+		content: [{ type: "text", text }],
+		isError,
+		timestamp: ts++,
+	};
 }
 
-function record(state: MoltState, toolCallId: string, turnIndex: number, tokenEstimate: number, toolName = "read", isError = false): void {
+function record(
+	state: MoltState,
+	toolCallId: string,
+	turnIndex: number,
+	tokenEstimate: number,
+	toolName = "read",
+	isError = false,
+): void {
 	state.toolCalls.set(toolCallId, {
 		toolCallId,
 		toolName,
@@ -48,12 +71,7 @@ describe("splicer", () => {
 			summaryTokenEstimate: 4,
 			createdAt: 1,
 		});
-		const messages = [
-			userMsg("go"),
-			assistantWithToolCall("tc1"),
-			toolResult("tc1", "output"),
-			userMsg("next"),
-		];
+		const messages = [userMsg("go"), assistantWithToolCall("tc1"), toolResult("tc1", "output"), userMsg("next")];
 		const out = applyPruning(messages, state, 2);
 		// The whole group must vanish; a synthetic summary message replaces it.
 		const text = JSON.stringify(out);
@@ -284,8 +302,8 @@ describe("createBlocks overlap", () => {
 			summaryTokenEstimate: 4,
 			createdAt: 1,
 		});
-		expect(() =>
-			createBlocks("next", [{ startId: "m003", endId: "m009", summary: "s" }], state),
-		).toThrow(/overlaps block b20 \(m001\.\.m005\)/);
+		expect(() => createBlocks("next", [{ startId: "m003", endId: "m009", summary: "s" }], state)).toThrow(
+			/overlaps block b20 \(m001\.\.m005\)/,
+		);
 	});
 });

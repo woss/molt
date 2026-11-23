@@ -4,12 +4,18 @@
 import { persistOriginal } from "./archive.ts";
 import { CONTEXT_SOFT_NUDGE, CONTEXT_STRONG_NUDGE, ITERATION_NUDGE, TURN_NUDGE } from "./prompt.ts";
 import { loadConfig, shouldAutoMolt, type MoltConfig } from "./scheduler.ts";
-import { createState, type MoltState, type ToolRecord } from "./state.ts";
-import { applyPruning, collectRangeMessages, estimateMessageTokens, estimateRangeSourceTokens, estimateTokens } from "./splicer.ts";
+import { type MoltState, type ToolRecord } from "./state.ts";
+import {
+	applyPruning,
+	collectRangeMessages,
+	estimateMessageTokens,
+	estimateRangeSourceTokens,
+	estimateTokens,
+} from "./splicer.ts";
 import { summarizeRanges } from "./summarizer.ts";
 import { cacheEconomics } from "./telemetry.ts";
 import { createBlocks, createTools } from "./tools.ts";
-import type { ContextEvent, ContextEventResult, HostAdapter, MoltMessage, Summarizer, TelemetrySpend } from "../types.ts";
+import type { ContextEvent, ContextEventResult, HostAdapter, Summarizer, TelemetrySpend } from "../types.ts";
 
 export function molt(adapter: HostAdapter, summarizer?: Summarizer): void {
 	const config: MoltConfig = loadConfig(process.cwd());
@@ -68,7 +74,9 @@ export function molt(adapter: HostAdapter, summarizer?: Summarizer): void {
 				autoMoltInFlight = true;
 				// Off-band (managed async): summarize candidates, push blocks for the next pass.
 				void runAutoMolt(decision.candidateRanges.flatMap((r) => r.toolCallIds))
-					.catch((error) => adapter.log?.("warn", `molt: auto-molt skipped: ${error instanceof Error ? error.message : String(error)}`))
+					.catch((error) =>
+						adapter.log?.("warn", `molt: auto-molt skipped: ${error instanceof Error ? error.message : String(error)}`),
+					)
 					.finally(() => {
 						autoMoltInFlight = false;
 					});

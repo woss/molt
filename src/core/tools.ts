@@ -16,11 +16,7 @@ function expandBlockPlaceholders(summary: string, state: MoltState): string {
 	});
 }
 
-function resolveIdToTimestamp(
-	rawId: string,
-	field: "startTimestamp" | "endTimestamp",
-	state: MoltState,
-): number {
+function resolveIdToTimestamp(rawId: string, field: "startTimestamp" | "endTimestamp", state: MoltState): number {
 	const id = rawId.trim();
 	const blockMatch = id.match(/^b(\d+)$/i);
 	if (blockMatch) {
@@ -126,7 +122,10 @@ export function createTools(host: HostAdapter, state: MoltState): MoltToolDef[] 
 			),
 		}),
 		async execute(_toolCallId, params) {
-			const { topic, ranges: requested } = params as { topic: string; ranges: Array<{ startId: string; endId: string; summary: string }> };
+			const { topic, ranges: requested } = params as {
+				topic: string;
+				ranges: Array<{ startId: string; endId: string; summary: string }>;
+			};
 			// Archive originals + embed the recall marker, same contract as runAutoMolt.
 			const messages = host.sessionMessages();
 			const originals = collectRangeMessages(messages, state, requested);
