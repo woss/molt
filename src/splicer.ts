@@ -20,9 +20,7 @@ export function collectRangeMessages(
 	const startTs = Math.min(
 		...ranges.map((r) => state.messageIdSnapshot.get(r.startId.trim()) ?? Number.POSITIVE_INFINITY),
 	);
-	const endTs = Math.max(
-		...ranges.map((r) => state.messageIdSnapshot.get(r.endId.trim()) ?? 0),
-	);
+	const endTs = Math.max(...ranges.map((r) => state.messageIdSnapshot.get(r.endId.trim()) ?? 0));
 	return messages.filter((m) => {
 		const ts = m.timestamp ?? 0;
 		return ts >= startTs && ts <= endTs;
@@ -101,9 +99,7 @@ function applyCompressionBlocks(messages: AnyMsg[], state: MoltState): AnyMsg[] 
 				}
 			}
 			const prevContent: any[] = Array.isArray(prev.content) ? prev.content : [];
-			const hasMatchingToolCalls = prevContent.some(
-				(b) => b.type === "toolCall" && toolCallIdsInRange.has(b.id),
-			);
+			const hasMatchingToolCalls = prevContent.some((b) => b.type === "toolCall" && toolCallIdsInRange.has(b.id));
 			if (!hasMatchingToolCalls) break;
 			lo = scanIdx;
 		}
@@ -123,7 +119,10 @@ function applyCompressionBlocks(messages: AnyMsg[], state: MoltState): AnyMsg[] 
 			}
 			while (hi + 1 < messages.length) {
 				const next = messages[hi + 1]!;
-				if ((next.role === "toolResult" || next.role === "bashExecution") && assistantToolCallIds.has(next.toolCallId)) {
+				if (
+					(next.role === "toolResult" || next.role === "bashExecution") &&
+					assistantToolCallIds.has(next.toolCallId)
+				) {
 					hi++;
 				} else if (PASSTHROUGH_ROLES.has(next.role)) {
 					hi++;
@@ -146,9 +145,7 @@ function applyCompressionBlocks(messages: AnyMsg[], state: MoltState): AnyMsg[] 
 					text: `[Molted section: ${block.topic}]\n\n${block.summary}\n\n<molt-block-id>b${block.id}</molt-block-id>`,
 				},
 			],
-			timestamp: Number.isFinite(block.anchorTimestamp)
-				? block.anchorTimestamp - 0.5
-				: block.endTimestamp + 0.5,
+			timestamp: Number.isFinite(block.anchorTimestamp) ? block.anchorTimestamp - 0.5 : block.endTimestamp + 0.5,
 		};
 
 		const addedTokens = estimateMessageTokens(syntheticMsg);
@@ -237,9 +234,7 @@ function applyToolOutputPruning(messages: AnyMsg[], state: MoltState): void {
 		msg.content = [
 			{
 				type: "text",
-				text: msg.isError
-					? "[Error output removed]"
-					: "[Output removed — duplicate of a later identical call]",
+				text: msg.isError ? "[Error output removed]" : "[Output removed — duplicate of a later identical call]",
 			},
 		];
 	}
@@ -298,11 +293,7 @@ function injectMessageIds(messages: AnyMsg[], state: MoltState): void {
 				if (firstToolCallIdx === -1) {
 					msg.content = [...msg.content, idBlock];
 				} else {
-					msg.content = [
-						...msg.content.slice(0, firstToolCallIdx),
-						idBlock,
-						...msg.content.slice(firstToolCallIdx),
-					];
+					msg.content = [...msg.content.slice(0, firstToolCallIdx), idBlock, ...msg.content.slice(firstToolCallIdx)];
 				}
 			} else if (typeof msg.content === "string") {
 				msg.content = msg.content + idTag;

@@ -25,7 +25,9 @@ export interface CacheEconomics {
 }
 
 /** Real cache rates ($/token) from ctx.model.cost; 0/0 when unknown (favors rewriting). */
-export function cacheEconomics(model: { cost?: { input?: unknown; cacheRead?: unknown; cacheWrite?: unknown } } | undefined | null): CacheEconomics {
+export function cacheEconomics(
+	model: { cost?: { input?: unknown; cacheRead?: unknown; cacheWrite?: unknown } } | undefined | null,
+): CacheEconomics {
 	const cost = model?.cost;
 	if (!cost) return { readRate: 0, writeRate: 0 };
 	const readRate = asNumber(cost.cacheRead);

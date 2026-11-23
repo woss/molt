@@ -39,9 +39,9 @@ export async function moltStatsHandler(_input: RpcInput<typeof moltStats>) {
 	try {
 		const sessionsDir = join(homedir(), ".omp", "agent", "sessions");
 		let newest: { file: string; mtime: number } | null = null;
-		for (const slug of readdirSyncFs(sessionsDir)) {
+		for (const slug of readdirSync(sessionsDir)) {
 			try {
-				for (const f of readdirSyncFs(join(sessionsDir, slug))) {
+				for (const f of readdirSync(join(sessionsDir, slug))) {
 					if (!f.endsWith(".jsonl")) continue;
 					const full = join(sessionsDir, slug, f);
 					const mtime = statSync(full).mtimeMs;

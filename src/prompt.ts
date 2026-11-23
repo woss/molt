@@ -1,6 +1,7 @@
 // molt — prompt text
 
-export const SUMMARIZER_SYSTEM_PROMPT = `You compress stale agent conversation ranges. Return JSON {topic, ranges:[{startId,endId,summary}]} where each summary is an exhaustive technical summary preserving file paths, commands, errors, decisions, and current values; omit nothing a later engineer needs.`.trim();
+export const SUMMARIZER_SYSTEM_PROMPT =
+	`You compress stale agent conversation ranges. Return JSON {topic, ranges:[{startId,endId,summary}]} where each summary is an exhaustive technical summary preserving file paths, commands, errors, decisions, and current values; omit nothing a later engineer needs.`.trim();
 
 export const MOLT_SYSTEM_PROMPT = `
 You operate in a context-constrained environment. Manage context continuously to avoid buildup and preserve retrieval quality.

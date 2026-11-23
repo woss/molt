@@ -143,9 +143,7 @@ export function deserializeMoltState(raw: unknown): Partial<MoltState> | undefin
 		}));
 	return {
 		compressionBlocks: validBlocks,
-		nextBlockId:
-			data.nextBlockId ??
-			(validBlocks.length > 0 ? Math.max(0, ...validBlocks.map((b) => b.id)) + 1 : 1),
+		nextBlockId: data.nextBlockId ?? (validBlocks.length > 0 ? Math.max(0, ...validBlocks.map((b) => b.id)) + 1 : 1),
 		prunedToolIds: new Set(data.prunedToolIds ?? []),
 		tokensSaved: data.tokensSaved ?? 0,
 		readRate: data.readRate ?? 0,

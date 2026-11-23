@@ -2,13 +2,7 @@
 
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import { persistOriginal } from "./archive.ts";
-import {
-	CONTEXT_SOFT_NUDGE,
-	CONTEXT_STRONG_NUDGE,
-	ITERATION_NUDGE,
-	MOLT_SYSTEM_PROMPT,
-	TURN_NUDGE,
-} from "./prompt.ts";
+import { CONTEXT_SOFT_NUDGE, CONTEXT_STRONG_NUDGE, ITERATION_NUDGE, MOLT_SYSTEM_PROMPT, TURN_NUDGE } from "./prompt.ts";
 import {
 	createState,
 	deserializeMoltState,
@@ -18,7 +12,13 @@ import {
 } from "./state.ts";
 import { loadConfig, shouldAutoMolt, type MoltConfig } from "./scheduler.ts";
 import { summarizeRanges } from "./summarizer.ts";
-import { applyPruning, collectRangeMessages, estimateMessageTokens, estimateRangeSourceTokens, estimateTokens } from "./splicer.ts";
+import {
+	applyPruning,
+	collectRangeMessages,
+	estimateMessageTokens,
+	estimateRangeSourceTokens,
+	estimateTokens,
+} from "./splicer.ts";
 import { cacheEconomics } from "./telemetry.ts";
 import { createBlocks, registerTools } from "./tools.ts";
 
@@ -174,7 +174,11 @@ export default function molt(pi: ExtensionAPI) {
 	async function runAutoMolt(toolCallIds: string[]): Promise<void> {
 		const ctx = latestCtx;
 		if (!ctx) return;
-		const messages = ctx.sessionManager?.getBranch?.().filter((e: any) => e.messages).flatMap((e: any) => e.messages) ?? [];
+		const messages =
+			ctx.sessionManager
+				?.getBranch?.()
+				.filter((e: any) => e.messages)
+				.flatMap((e: any) => e.messages) ?? [];
 		const idTargets = toolCallIds
 			.map((id) => state.toolCalls.get(id))
 			.filter((r): r is NonNullable<typeof r> => r !== undefined && r.timestamp > 0);
@@ -186,9 +190,15 @@ export default function molt(pi: ExtensionAPI) {
 
 		const model = await ctx.models.resolve(config.model);
 		const resolved = model ?? (await ctx.models.resolve("current")) ?? ctx.models.current();
-		const summary = await summarizeRanges({ ...ctx, models: { resolve: () => Promise.resolve(resolved) } }, ranges, messages, {
-			model: config.model,
-		}, state);
+		const summary = await summarizeRanges(
+			{ ...ctx, models: { resolve: () => Promise.resolve(resolved) } },
+			ranges,
+			messages,
+			{
+				model: config.model,
+			},
+			state,
+		);
 
 		// Archive the raw messages inside the summarized ranges, then embed the marker.
 		const originals = collectRangeMessages(messages, state, summary.ranges);
