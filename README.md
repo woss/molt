@@ -4,7 +4,7 @@
 
 # molt — shed stale context, keep the session
 
-Local semantic context optimizer for [omp](https://github.com/can1357/oh-my-pi): permanently shrinks session context by LLM-summarizing stale conversation ranges — but only when the projected token savings beat the one-time prompt-cache bust a rewrite costs.
+Local semantic context optimizer for coding agents: permanently shrinks session context by LLM-summarizing stale conversation ranges — but only when the projected token savings beat the one-time prompt-cache bust a rewrite costs. Shipped as an [omp](https://github.com/can1357/oh-my-pi) adapter; the engine is host-agnostic (see [Harness compatibility](#harness-compatibility)).
 
 Structural compressors (truncation, headroom-style request trimming) shrink _requests_ but never shrink _history_: the full transcript keeps flowing through every call. molt replaces stale ranges in history with dense technical summaries, so every later request is actually smaller. Originals are archived on disk and recoverable verbatim at any time.
 
