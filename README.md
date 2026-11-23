@@ -18,7 +18,7 @@ flowchart TB
     G -- gate fails --> F
     H --> I["persistOriginal()<br>~/.omp/agent/molt-archive/&lt;hash&gt;.json"]
     H --> J["CompressionBlock bN"]
-    J -.-> "applies on next context event" F
+    J -.->|"applies on next context event"| F
     K["model"] <--> |"molt tool: compress ranges by mNNN id"| F
     K <--> |"molt_expand hash: verbatim originals"| I
 ```
