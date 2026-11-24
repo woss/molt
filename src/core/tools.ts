@@ -107,7 +107,9 @@ export function createTools(host: HostAdapter, state: MoltState): MoltToolDef[] 
 		description:
 			"Compress ranges of conversation into dense technical summaries to manage context. " +
 			"Use only <molt-id> boundary IDs visible in context (mNNN for messages, bN for previously molted blocks). " +
-			"startId must appear before endId. Batch independent ranges in one call.",
+			"startId must appear before endId. Batch independent ranges in one call. " +
+			"Via bash: pass args as -j '<json>' (inline), @FILE, or - (stdin); " +
+			"-j requires the JSON inline, and strings must escape newlines as \\n.",
 		parameters: Type.Object({
 			topic: Type.String({ description: "Short label (3-5 words), e.g. 'Auth Exploration'" }),
 			ranges: Type.Array(
