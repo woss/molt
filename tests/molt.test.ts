@@ -6,7 +6,8 @@ import {
 	createInputFingerprint,
 	type MoltState,
 } from "../src/core/state.ts";
-import { createBlocks } from "../src/core/tools.ts";
+import { createBlocks, createTools } from "../src/core/tools.ts";
+import type { HostAdapter } from "../src/types.ts";
 import { recordUsage, cacheEconomics, projectBustCostUsd } from "../src/core/telemetry.ts";
 import { shouldAutoMolt, DEFAULT_CONFIG, type MoltConfig } from "../src/core/scheduler.ts";
 import { applyPruning, estimateRangeSourceTokens, repairOrphanedToolPairs } from "../src/core/splicer.ts";
@@ -305,5 +306,47 @@ describe("createBlocks overlap", () => {
 		expect(() => createBlocks("next", [{ startId: "m003", endId: "m009", summary: "s" }], state)).toThrow(
 			/overlaps block b20 \(m001\.\.m005\)/,
 		);
+	});
+});
+
+describe("createBlocks unknown id", () => {
+	it("names the nearest known id in the unknown-ID error", () => {
+		const state = createState();
+		for (const [id, ts] of [
+			["m001", 1000],
+			["m044", 1044],
+			["m046", 1046],
+		] as const) {
+			state.messageIdSnapshot.set(id, ts);
+		}
+		expect(() => createBlocks("next", [{ startId: "m030", endId: "m047", summary: "s" }], state)).toThrow(
+			/Unknown message ID: m030.*m001\.\.m046.*nearest known: m044, m046/s,
+		);
+	});
+});
+
+describe("molt tool", () => {
+	function fakeHost(): HostAdapter {
+		return {
+			state: createState(),
+			onToolRecord: () => {},
+			onMessageEnd: () => {},
+			registerTools: () => {},
+			sessionMessages: () => [],
+			appendMetric: () => {},
+		};
+	}
+
+	it("accepts ranges passed as a JSON-encoded string", async () => {
+		const host = fakeHost();
+		host.state.messageIdSnapshot.set("m001", 1000);
+		host.state.messageIdSnapshot.set("m005", 1004);
+		const [moltTool] = createTools(host, host.state);
+		const result = await moltTool.execute("t1", {
+			topic: "string ranges",
+			ranges: JSON.stringify([{ startId: "m001", endId: "m005", summary: "s" }]),
+		});
+		const details = result.details ?? {};
+		expect(details.blockIds).toEqual([1]);
 	});
 });

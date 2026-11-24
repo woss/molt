@@ -16,16 +16,40 @@ function expandBlockPlaceholders(summary: string, state: MoltState): string {
 	});
 }
 
+function unknownIdError(id: string, state: MoltState): Error {
+	const numericId = (s: string) => Number(/(\d+)/.exec(s)?.[1] ?? "0");
+	const known = [...state.messageIdSnapshot.keys()].sort((a, b) => numericId(a) - numericId(b));
+	const parts: string[] = [];
+	if (known.length > 0) {
+		let nearest = "";
+		const num = /m(\d+)/i.exec(id)?.[1];
+		if (num) {
+			const target = Number(num);
+			const near = known
+				.filter((k) => k !== id)
+				.sort((a, b) => Math.abs(numericId(a) - target) - Math.abs(numericId(b) - target))
+				.slice(0, 2)
+				.sort((a, b) => numericId(a) - numericId(b));
+			if (near.length > 0) nearest = `; nearest known: ${near.join(", ")}`;
+		}
+		parts.push(`snapshot holds ${known.length} id(s) (${known[0]}..${known[known.length - 1]})${nearest}`);
+	}
+	const activeBlocks = state.compressionBlocks.filter((b) => b.active).map((b) => `b${b.id}`);
+	if (activeBlocks.length > 0) parts.push(`active blocks: ${activeBlocks.slice(-3).join(", ")}`);
+	const hint = parts.length > 0 ? ` (${parts.join("; ")})` : " (no ids registered yet)";
+	return new Error(`Unknown message ID: ${id}${hint}. Use an id from a visible <molt-id> tag.`);
+}
+
 function resolveIdToTimestamp(rawId: string, field: "startTimestamp" | "endTimestamp", state: MoltState): number {
 	const id = rawId.trim();
 	const blockMatch = id.match(/^b(\d+)$/i);
 	if (blockMatch) {
 		const block = state.compressionBlocks.find((b) => b.id === Number(blockMatch[1]) && b.active);
-		if (!block) throw new Error(`Unknown message ID: ${id}`);
+		if (!block) throw unknownIdError(id, state);
 		return block[field];
 	}
 	const ts = state.messageIdSnapshot.get(id);
-	if (ts === undefined) throw new Error(`Unknown message ID: ${id}`);
+	if (ts === undefined) throw unknownIdError(id, state);
 	return ts;
 }
 
@@ -107,27 +131,47 @@ export function createTools(host: HostAdapter, state: MoltState): MoltToolDef[] 
 		description:
 			"Compress ranges of conversation into dense technical summaries to manage context. " +
 			"Use only <molt-id> boundary IDs visible in context (mNNN for messages, bN for previously molted blocks). " +
-			"startId must appear before endId. Batch independent ranges in one call. " +
+			"startId must appear before endId, and both must already exist — never guess an id past the newest visible tag. " +
+			"Batch independent ranges in one call. " +
 			"Via bash: pass args as -j '<json>' (inline), @FILE, or - (stdin); " +
 			"-j requires the JSON inline, and strings must escape newlines as \\n.",
 		parameters: Type.Object({
 			topic: Type.String({ description: "Short label (3-5 words), e.g. 'Auth Exploration'" }),
-			ranges: Type.Array(
-				Type.Object({
-					startId: Type.String({ description: "Message ID marking range start (m001, b2)" }),
-					endId: Type.String({ description: "Message ID marking range end (m042, b5)" }),
-					summary: Type.String({
-						description: "Exhaustive technical summary replacing all content in range",
-					}),
-				}),
+			ranges: Type.Union(
+				[
+					Type.Array(
+						Type.Object({
+							startId: Type.String({ description: "Message ID marking range start (m001, b2)" }),
+							endId: Type.String({ description: "Message ID marking range end (m042, b5)" }),
+							summary: Type.String({
+								description: "Exhaustive technical summary replacing all content in range",
+							}),
+						}),
+						{ description: "One or more ranges to molt" },
+					),
+					Type.String({ description: "JSON-encoded ranges array — prefer passing the array directly" }),
+				],
 				{ description: "One or more ranges to molt" },
 			),
 		}),
 		async execute(_toolCallId, params) {
-			const { topic, ranges: requested } = params as {
-				topic: string;
-				ranges: Array<{ startId: string; endId: string; summary: string }>;
-			};
+			const topic = params.topic;
+			if (typeof topic !== "string" || topic.length === 0) {
+				throw new Error("topic: required non-empty string");
+			}
+			type MoltRange = { startId: string; endId: string; summary: string };
+			let requested: MoltRange[] = [];
+			const rawRanges = params.ranges;
+			if (typeof rawRanges === "string") {
+				try {
+					requested = JSON.parse(rawRanges) as MoltRange[];
+				} catch {
+					throw new Error("ranges: could not parse JSON string; pass an array of {startId, endId, summary}");
+				}
+			} else if (Array.isArray(rawRanges)) {
+				// Element shape is enforced by the tool schema at the harness boundary.
+				requested = rawRanges as MoltRange[];
+			}
 			// Archive originals + embed the recall marker, same contract as runAutoMolt.
 			const messages = host.sessionMessages();
 			const originals = collectRangeMessages(messages, state, requested);
