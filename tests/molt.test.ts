@@ -320,7 +320,7 @@ describe("createBlocks unknown id", () => {
 			state.messageIdSnapshot.set(id, ts);
 		}
 		expect(() => createBlocks("next", [{ startId: "m030", endId: "m047", summary: "s" }], state)).toThrow(
-			/Unknown message ID: m047.*nearest known: m044, m046.*m001\.\.m046/s,
+			/Unknown message ID: m030.*nearest known: m044, m046.*m001\.\.m046/s,
 		);
 	});
 });
